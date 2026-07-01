@@ -1,0 +1,41 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="shopify-api-key" content="10635c00182be48da1720e2fdc596776">
+<script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
+</head>
+<body>
+<h1>Shunya probe-embedded (GitHub Pages temporary host)</h1>
+<pre id="out">booting App Bridge...
+</pre>
+<script>
+const BASE = "https://ppxefxuoqchhviyogmed.supabase.co/functions/v1";
+const out = document.getElementById("out");
+const log = (m) => { out.textContent += m + "\n"; };
+(async () => {
+  try {
+    const token = await shopify.idToken();
+    log("App Bridge booted (github.io host)");
+    log("session token acquired: " + token.slice(0, 12) + "... (" + token.length + " chars)");
+    const post = async (path, body) => {
+      const r = await fetch(BASE + path, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      return r.status + " " + (await r.text());
+    };
+    log("P5 valid token:    " + await post("/probe-verify-jwt", { token }));
+    const flipped = token.slice(-2, -1) === "A" ? "B" : "A";
+    const tampered = token.slice(0, -2) + flipped + token.slice(-1);
+    log("P5 tampered token: " + await post("/probe-verify-jwt", { token: tampered }));
+    log("P3 token exchange: " + await post("/probe-token-exchange", { token }));
+    log("DONE -- screenshot this box");
+  } catch (e) {
+    log("ERROR: " + e.message);
+  }
+})();
+</script>
+</body>
+</html>
