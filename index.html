@@ -6,36 +6,37 @@
 <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js"></script>
 </head>
 <body>
-<h1>Shunya probe-embedded (GitHub Pages temporary host)</h1>
+<h1>Shunya E4 acceptance detour (GitHub Pages temporary host)</h1>
+<p>Each run POSTs a fresh App Bridge session token to shopify-embedded-auth.
+Copy any link_token into the local secrets file — never into chat.</p>
+<button id="rerun">Run again</button>
 <pre id="out">booting App Bridge...
 </pre>
 <script>
 const BASE = "https://ppxefxuoqchhviyogmed.supabase.co/functions/v1";
 const out = document.getElementById("out");
 const log = (m) => { out.textContent += m + "\n"; };
-(async () => {
+async function run() {
+  log("--- run @ " + new Date().toISOString() + " ---");
   try {
     const token = await shopify.idToken();
-    log("App Bridge booted (github.io host)");
-    log("session token acquired: " + token.slice(0, 12) + "... (" + token.length + " chars)");
-    const post = async (path, body) => {
-      const r = await fetch(BASE + path, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      return r.status + " " + (await r.text());
-    };
-    log("P5 valid token:    " + await post("/probe-verify-jwt", { token }));
-    const flipped = token.slice(-2, -1) === "A" ? "B" : "A";
-    const tampered = token.slice(0, -2) + flipped + token.slice(-1);
-    log("P5 tampered token: " + await post("/probe-verify-jwt", { token: tampered }));
-    log("P3 token exchange: " + await post("/probe-token-exchange", { token }));
+    log("App Bridge booted; session token acquired (" + token.length + " chars)");
+    const r = await fetch(BASE + "/shopify-embedded-auth", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ token }),
+    });
+    const text = await r.text();
+    let pretty = text;
+    try { pretty = JSON.stringify(JSON.parse(text), null, 2); } catch (e) { /* raw */ }
+    log("embedded-auth HTTP " + r.status + ":\n" + pretty);
     log("DONE -- screenshot this box");
   } catch (e) {
     log("ERROR: " + e.message);
   }
-})();
+}
+document.getElementById("rerun").addEventListener("click", run);
+run();
 </script>
 </body>
 </html>
